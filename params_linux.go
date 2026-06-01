@@ -38,6 +38,13 @@ type PlatformSpecificParams struct {
 	// uses multiple file descriptors (queues) to parallelize packets sending
 	// or receiving.
 	MultiQueue bool
+
+	// GSO enables IFF_VNET_HDR + TUNSETOFFLOAD (TSO/CSUM) on the device, so the
+	// kernel hands over coalesced (up to 64KB) TCP/UDP GSO super-frames on read.
+	// water transparently splits them back into MTU-sized IP packets and prefixes
+	// writes with a virtio_net_hdr, so the Read/Write API is unchanged. Cuts
+	// per-packet read syscalls and lets a single flow's packets flow as a burst.
+	GSO bool
 }
 
 func defaultPlatformSpecificParams() PlatformSpecificParams {

@@ -12,6 +12,12 @@ const (
 	cIFFTAP        = 0x0002
 	cIFFNOPI       = 0x1000
 	cIFFMULTIQUEUE = 0x0100
+	cIFFVNETHDR    = 0x4000
+
+	cTUNSETOFFLOAD = 0x400454d0
+	cTUNFCSUM      = 0x01 // TUN_F_CSUM
+	cTUNFTSO4      = 0x02 // TUN_F_TSO4
+	cTUNFTSO6      = 0x04 // TUN_F_TSO6
 )
 
 type ifReq struct {
@@ -38,6 +44,9 @@ func setupFd(config Config, fd uintptr) (name string, err error) {
 	if config.PlatformSpecificParams.MultiQueue {
 		flags |= cIFFMULTIQUEUE
 	}
+	if config.PlatformSpecificParams.GSO {
+		flags |= cIFFVNETHDR
+	}
 
 	if name, err = createInterface(fd, config.Name, flags); err != nil {
 		return "", err
@@ -45,6 +54,14 @@ func setupFd(config Config, fd uintptr) (name string, err error) {
 
 	if err = setDeviceOptions(fd, config); err != nil {
 		return "", err
+	}
+
+	if config.PlatformSpecificParams.GSO {
+		// Enable TSO/CSUM so the kernel coalesces TCP/UDP into GSO super-frames
+		// on read. The arg is passed by value (like TUNSETPERSIST), not by pointer.
+		if err = ioctl(fd, cTUNSETOFFLOAD, uintptr(cTUNFCSUM|cTUNFTSO4|cTUNFTSO6)); err != nil {
+			return "", err
+		}
 	}
 
 	return name, nil
