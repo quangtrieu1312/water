@@ -20,7 +20,10 @@ import (
 var gsoReadErrs atomic.Int64
 
 const (
-	gsoSegBufSize  = 2048 // max single segment (IP+L4+payload); tun MTU is well under this
+	// must exceed the largest single inner-MTU segment. Inner tun MTU is WAN-derived
+	// and capped at the XDP-native virtio limit (3506); 4096 covers it with margin and
+	// matches the caller's read buffer (src/main.go). 2048 panicked at the 3422 jumbo MTU.
+	gsoSegBufSize  = 4096 // max single segment (IP+L4+payload)
 	gsoMaxSegments = 128  // max segments per GSO super-frame
 )
 

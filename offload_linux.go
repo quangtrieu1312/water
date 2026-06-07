@@ -172,6 +172,12 @@ func gsoSplit(in []byte, hdr virtioNetHdr, outBuffs [][]byte, sizes []int, outOf
 		totalLen := int(hdr.hdrLen) + segmentDataLen
 		sizes[i] = totalLen
 		out := outBuffs[i][outOffset:]
+		if totalLen > len(out) {
+			// segment larger than the per-segment buffer; skip the frame rather than
+			// panic on the out[:totalLen] slices below. Trips only on an inner MTU that
+			// exceeds gsoSegBufSize (raise it for jumbo underlays).
+			return i, fmt.Errorf("segment %d len %d exceeds seg buffer %d (raise gsoSegBufSize)", i, totalLen, len(out))
+		}
 
 		copy(out, in[:iphLen])
 		if !isV6 {
