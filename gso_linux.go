@@ -98,3 +98,15 @@ func (d *gsoDevice) Write(p []byte) (int, error) {
 func (d *gsoDevice) Close() error {
 	return d.f.Close()
 }
+
+// GSOFd returns the underlying tun fd when this interface was opened with GSO
+// (IFF_VNET_HDR + TUNSETOFFLOAD), else -1. A caller may write a pre-built
+// virtio_net_hdr-prefixed frame (e.g. a TSO super-frame) directly to it,
+// bypassing the per-packet GSO_NONE Write path. Returns -1 for a plain TUN so
+// callers can detect "GSO not available" and fall back.
+func (ifce *Interface) GSOFd() int {
+	if d, ok := ifce.ReadWriteCloser.(*gsoDevice); ok {
+		return int(d.f.Fd())
+	}
+	return -1
+}
